@@ -1,4 +1,4 @@
-var scene, renderer, camera, gui, stars=[], planets =[], balls=[];
+var scene, renderer, camera, gui, stars=[], planets =[],spirals=[];
 var controls;
 
 const raycaster = new THREE.Raycaster();
@@ -48,11 +48,12 @@ function init(){
     controls.enableDamping = true;
     controls.dampingFactor = 0.25;
     controls.enableZoom = true;
+    
   
   // OBJECTS
   drawSphereWithRing()
   addSphere();
-
+  createParticles();
   window.addEventListener( 'click', onMouseClick, false );
   window.addEventListener('keydown', keyPressed);
 
@@ -62,6 +63,50 @@ function init(){
   addDatGui()
 
  
+}
+
+function createParticles(){
+  for(let i = -500; i < 500; i += 50){
+    // Temp variables to assign new values inside loop
+    var norm, theta, phi, thetaVar, distance;
+    const geometry = new THREE.Geometry()
+    // Generate particles for spiral galaxy:
+      for (let i = 0; i < 1000; i++) {
+          // Norm increments from 0 to 1
+          norm = i / 1000;
+
+          // Random variation to theta [-0.5, 0.5]
+          thetaVar = THREE.Math.randFloatSpread(1);
+
+          // Theta grows from 0 to Math.PI (+ random variation)
+          theta = norm * Math.PI + thetaVar;
+
+          // Phi stays close to 0 to create galaxy ecliptic plane
+          phi = THREE.Math.randFloatSpread(0.1);
+
+          // Distance grows from 0 to galaxySize
+          distance = norm * 100;
+
+          // Here I need generate spiral arms instead of sphere.
+          geometry.vertices.push(new THREE.Vector3(
+              distance * Math.sin(theta) * Math.cos(phi),
+              distance * Math.sin(theta) * Math.sin(phi),
+              distance * Math.cos(theta)
+          ));
+      }
+      const spiralGalaxy = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0xffffff }));
+      spiralGalaxy.position.x = Math.random() * 1000 - 500;
+    
+      spiralGalaxy.position.y = Math.random() * 1000 - 500;
+      spiralGalaxy.position.z = i;
+      const rotation = new THREE.Euler();
+      spiralGalaxy.rotation.x = Math.random() * 2 * Math.PI;
+      spiralGalaxy.rotation.y = Math.random() * 2 * Math.PI;
+      spiralGalaxy.rotation.z = Math.random() * 2 * Math.PI;
+      scene.add(spiralGalaxy);
+      spirals.push(spiralGalaxy);
+      
+  }
 }
 
 function loadExternModel(){
@@ -130,10 +175,10 @@ function addSphere(){
 
     // Make a sphere (exactly the same as before). 
     var geometry   = new THREE.SphereGeometry(1.5, 32, 32)
-    var particleMaterial = new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load('images/particle.jpeg')});
+    var particleMaterial = new THREE.MeshBasicMaterial({size: 0.1, map: new THREE.TextureLoader().load('images/particle.jpeg'), blending: THREE.AdditiveBlending});
     var sphere = new THREE.Mesh(geometry, particleMaterial)
 
-    // This time we give the sphere random x and y positions between -500 and 500
+    // This time we give the sphere random x and y positions 
     sphere.position.x = Math.random() * 1000 - 500;
     sphere.position.y = Math.random() * 1000 - 500;
 
@@ -167,7 +212,22 @@ function animateStars() {
   }
 
 }
+function animateParticles() { 
+				
+  // loop through each star
+  for(var i=0; i<spirals.length; i++) {
+    
+    var spiral = spirals[i]; 
+      
+    // and move it forward dependent on the mouseY position. 
+    spiral.position.z +=  i/10;
+      
+    // if the particle is too close move it to the back
+    if(spiral.position.z>1000) spiral.position.z-=2000; 
+    
+  }
 
+}
 
 
 function animatePlanets() { 
@@ -244,6 +304,7 @@ function render() {
    controls.update();
    animateStars();
    animatePlanets();
+   animateParticles();
   
 
 }
