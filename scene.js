@@ -1,5 +1,6 @@
 var scene, renderer, camera, gui, stars=[], planets =[], balls=[];
 var controls;
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 var speed = 20;
@@ -53,11 +54,14 @@ function init(){
   addSphere();
 
   window.addEventListener( 'click', onMouseClick, false );
-
+  window.addEventListener('keydown', keyPressed);
 
   loadExternModel()
-
+  
+  
   addDatGui()
+
+ 
 }
 
 function loadExternModel(){
@@ -75,8 +79,7 @@ function loadExternModel(){
       objLoader.load('r2-d2.obj', function (object) {
   
           scene.add(object);
-          object.position.y -= 60;
-  
+          object.position.y -= 60; 
       });
   
   });
@@ -126,9 +129,9 @@ function addSphere(){
   for ( var z= -2000; z < 2000; z+=speed ) {
 
     // Make a sphere (exactly the same as before). 
-    var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
-    var material = new THREE.MeshBasicMaterial( {color: 0xffffff} );
-    var sphere = new THREE.Mesh(geometry, material)
+    var geometry   = new THREE.SphereGeometry(1.5, 32, 32)
+    var particleMaterial = new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load('images/particle.jpeg')});
+    var sphere = new THREE.Mesh(geometry, particleMaterial)
 
     // This time we give the sphere random x and y positions between -500 and 500
     sphere.position.x = Math.random() * 1000 - 500;
@@ -210,6 +213,26 @@ function onMouseClick( event ) {
   
   }
 
+}
+
+function keyPressed(e){
+  var delta = 1000;
+  switch(e.key) {
+    case 'ArrowUp':
+        camera.position.x - delta;
+        break;
+    case 'ArrowDown':
+        camera.position.x + delta;
+        break;
+    case 'ArrowLeft':
+        camera.position.z - delta;
+        break;
+    case 'ArrowRight':
+        camera.position.z + delta;
+        break;
+  }
+  e.preventDefault();
+  
 }
 
 
