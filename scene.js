@@ -1,6 +1,9 @@
-var scene, renderer, camera, stars=[], planets =[];
+var scene, renderer, camera, gui, stars=[], planets =[], balls=[];
+var controls;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+var speed = 20;
+
 
 init();
 
@@ -12,12 +15,20 @@ function init(){
 
   //CAMERA
   camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1, 1000);
-  camera.position.z = 7;
+  camera.position.z = 200;
   
   //LIGHTS
-  var light = new THREE.DirectionalLight(0xf5f5f5, 1);
-  light.position.set( -1, 2, 4);
-  scene.add(light);
+  var keyLight = new THREE.DirectionalLight(new THREE.Color('hsl(30, 100%, 75%)'), 1.0);
+  keyLight.position.set(-100, 0, 100);
+
+  var fillLight = new THREE.DirectionalLight(new THREE.Color('hsl(240, 100%, 75%)'), 0.75);
+  fillLight.position.set(100, 0, 100);
+
+  var backLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  backLight.position.set(100, 0, -100).normalize();
+  scene.add(keyLight);
+  scene.add(fillLight);
+  scene.add(backLight);
 
   //RENDERER
   renderer = new THREE.WebGLRenderer({antialias : true});
@@ -31,48 +42,57 @@ function init(){
   camera.updateProjectionMatrix();
   })
 
+  //CONTROLS
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.25;
+    controls.enableZoom = true;
   
-  
+  // OBJECTS
   drawSphereWithRing()
-
-  
-
-
-
   addSphere();
-   
-  window.addEventListener( 'mousemove', onMouseMove, false );
 
-  // var material = new THREE.MeshPhongMaterial({
-  //   color: 0xF3FFE2,
-  //   specular: 0xffffff,
-  //   shininess: 1000,
-  //   lightMap: null,
-  //   lightMapIntensity: 1,
-  //   bumpMap: null,
-  //   bumpScale: 1,
-  //   normalMap: null,
-  //   normalScale: 1,
-  //   displacementMap: null,
-  //   displacementScale: 1,
-  //   displacementBias: 0,
-  //   specularMap: null
-  // });
-  
+  window.addEventListener( 'click', onMouseClick, false );
 
-  // var geometry2 = new THREE.SphereGeometry(50, 20, 20);
-  // var mesh2 = new THREE.Mesh(geometry2, material);
-  // mesh2.position.z = -500;
-  // mesh2.position.x = 100;
-  // scene.add(mesh2);
 
- 
+  loadExternModel()
+
+  addDatGui()
 }
 
+function loadExternModel(){
 
+  var mtlLoader = new THREE.MTLLoader();
+  mtlLoader.setTexturePath('/assets/');
+  mtlLoader.setPath('/assets/');
+  mtlLoader.load('r2-d2.mtl', function (materials) {
+  
+      materials.preload();
+  
+      var objLoader = new THREE.OBJLoader();
+      objLoader.setMaterials(materials);
+      objLoader.setPath('/assets/');
+      objLoader.load('r2-d2.obj', function (object) {
+  
+          scene.add(object);
+          object.position.y -= 60;
+  
+      });
+  
+  });
+}
 
+function addDatGui(){
+  gui = new dat.GUI();
+  //gui.add(light, "intensity", 0, 20);
+  gui.add(camera.position, 'x', -500,500).step(5);
+  gui.add(camera.position, 'y', -500,500).step(5);
+  gui.add(camera.position, 'z', 0,2000).step(5);
+  
+  
+}
 function drawSphereWithRing(){
-  for(let i = -1000; i < 1000; i+= 100){
+  for(let i = -1000; i < 1000; i+= 50){
     var planetGeometry = new THREE.SphereGeometry(20,15,15);
     var planetMaterial = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
     var planet = new THREE.Mesh(planetGeometry,planetMaterial);
@@ -101,9 +121,9 @@ function drawSphereWithRing(){
 
 
 function addSphere(){
-
+  
   // The loop will move from z position of -1000 to z position 1000, adding a random particle at each position. 
-  for ( var z= -1000; z < 1000; z+=20 ) {
+  for ( var z= -2000; z < 2000; z+=speed ) {
 
     // Make a sphere (exactly the same as before). 
     var geometry   = new THREE.SphereGeometry(0.5, 32, 32)
@@ -145,6 +165,8 @@ function animateStars() {
 
 }
 
+
+
 function animatePlanets() { 
 				
   // loop through each star
@@ -163,37 +185,50 @@ function animatePlanets() {
 }
 
 
-function onMouseMove( event ) {
+function onMouseClick( event ) {
 
 	// calculate mouse position in normalized device coordinates
 	// (-1 to +1) for both components
 
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+  mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+  
+  raycaster.setFromCamera( mouse, camera );
+
+	//calculate objects intersecting the picking ray
+	const intersects = raycaster.intersectObjects(scene.children);
+
+	for ( let i = 0; i < intersects.length; i ++ ){
+
+   intersects[ i ].object.material.color.set("#ffffff");
+   var ringGeometry = new THREE.TorusGeometry(50, 2, 40, 25);
+   var ringMaterial = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+   var ring= new THREE.Mesh(ringGeometry, ringMaterial);
+   ring.rotation.x  = Math.PI/2;
+   intersects[ i ].object.add(ring);
+   
+  
+  }
 
 }
+
 
 function render() {
   requestAnimationFrame( render );
 
-	raycaster.setFromCamera( mouse, camera );
+	 //render the scene
+   renderer.render( scene, camera );
+   controls.update();
+   animateStars();
+   animatePlanets();
+  
 
-	//calculate objects intersecting the picking ray
-	const intersects = raycaster.intersectObjects( scene.children );
+}
 
-	for ( let i = 0; i < intersects.length; i ++ ) {
-
-		intersects[ i ].object.material.color.set("#ffffff");
-
-  }
-
-  //render the scene
- renderer.render( scene, camera );
-    animateStars();
-    animatePlanets();
+ 
 
       
 
-}
+
 
 
